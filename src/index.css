@@ -1,0 +1,209 @@
+/* Base Styles */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+/* Container */
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  text-align: left; /* Ensure left alignment */
+}
+
+/* Headings */
+h1, h2 {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+/* Input + Select */
+input, select {
+  padding: 10px;
+  margin: 10px 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+/* Buttons */
+button, .button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 8px 16px;
+  margin: 10px 0;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 4px;
+  display: inline-block;
+
+}
+
+.button:hover,
+button:hover {
+  background-color: #388e3c;
+}
+
+.button.back {
+  background-color: #333;
+}
+
+.back-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 6px 12px;
+  background: #000000;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* Action buttons */
+.action {
+  margin-right: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  background-color: #eee;
+  border-radius: 4px;
+  border: none;
+}
+
+.action.danger {
+  background-color: crimson;
+  color: white;
+}
+
+/* Table Styles */
+.table, .item-table, table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.table th, .table td,
+.item-table th, .item-table td,
+table th, table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+/* Quote Card */
+.card {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.quote-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.quote-date {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+/* Search Bar Styles */
+.search-bar {
+  margin-bottom: 20px;
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.search-results li {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.search-results li:last-child {
+  border-bottom: none;
+}
+
+.search-results li:hover {
+  background-color: #f0f0f0;
+}
+
+/* App Styles */
+.app-container {
+  text-align: left; /* ✅ Moved from center to left */
+  padding: 40px 20px;
+}
+
+.app-title {
+  font-size: 32px;
+  margin-bottom: 30px;
+  color: #2c3e50;
+  text-align: left;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: flex-start; /* ✅ Button alignment left */
+}
+
+.main-button {
+  background-color: #2c3e50;
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 250px;
+  transition: background 0.2s ease;
+  text-align: left;
+}
+
+.main-button:hover {
+  background-color: #1a242f;
+}
+
+@media (min-width: 600px) {
+  .button-group {
+    flex-direction: row;
+    justify-content: flex-start; /* ✅ Force button group to start */
+  }
+}
