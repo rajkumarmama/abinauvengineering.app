@@ -8,25 +8,23 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  Timestamp,
   writeBatch,
 } from 'firebase/firestore';
 
-const ItemMaster = () => {
+function CustomerMaster() {
   // --- State Variables ---
-  const [items, setItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [name, setName] = useState('');
-  const [rate, setRate] = useState('');
-  const [stock, setStock] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [csvFile, setCsvFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState(null);
-  const [itemNameError, setItemNameError] = useState('');
-  const [itemRateError, setItemRateError] = useState('');
-  const [itemStockError, setItemStockError] = useState('');
-  const [activeTab, setActiveTab] = useState('newItem'); // New: State for active tab
+  const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]); // NEW: for search functionality
+  const [searchTerm, setSearchTerm] = useState(''); // NEW: for search bar input
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerContact, setNewCustomerContact] = useState('');
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [file, setFile] = useState(null); // State for selected CSV file
+  const [uploadStatus, setUploadStatus] = useState(null); // Changed to null for no initial message
+  const [loading, setLoading] = useState(false); // New loading state for all operations
+  const [nameError, setNameError] = useState(''); // New state for input validation error
+  const [activeTab, setActiveTab] = useState('newCustomer'); // New: State for active tab
 
   // --- Styles for the component ---
   const styles = {
@@ -43,7 +41,7 @@ const ItemMaster = () => {
     },
     header: {
       textAlign: 'center',
-      marginBottom: '30px', // Adjusted margin
+      marginBottom: '30px',
       borderBottom: '3px solid #2c3e50',
       paddingBottom: '15px',
     },
@@ -81,12 +79,12 @@ const ItemMaster = () => {
     tabContent: {
       backgroundColor: 'white',
       padding: '30px',
-      borderRadius: '0 0 8px 8px', // Rounded bottom corners only
+      borderRadius: '0 0 8px 8px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
       border: '1px solid #e0e0e0',
-      borderTop: 'none', // No top border as it connects to the tab
+      borderTop: 'none',
       marginBottom: '30px',
-      minHeight: '400px', // Ensure consistent height
+      minHeight: '400px',
     },
     inputGroup: {
       marginBottom: '20px',
@@ -130,52 +128,74 @@ const ItemMaster = () => {
       transition: 'background-color 0.3s ease, opacity 0.3s ease, transform 0.2s ease',
       minWidth: '150px',
       boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-      },
-      '&:disabled': {
-        opacity: 0.6,
-        cursor: 'not-allowed',
-      }
     },
     primaryButton: {
       backgroundColor: '#28a745',
       color: 'white',
-      '&:hover': { backgroundColor: '#218838' },
-      '&:disabled': { backgroundColor: '#a2d9a9' }
+      '&:hover': {
+        backgroundColor: '#218838',
+        transform: 'translateY(-2px)',
+      },
+      '&:disabled': {
+        backgroundColor: '#a2d9a9',
+        cursor: 'not-allowed',
+      }
     },
     secondaryButton: {
       backgroundColor: '#007bff',
       color: 'white',
-      '&:hover': { backgroundColor: '#0056b3' },
-      '&:disabled': { backgroundColor: '#b0d8ff' }
+      '&:hover': {
+        backgroundColor: '#0056b3',
+        transform: 'translateY(-2px)',
+      },
+      '&:disabled': {
+        backgroundColor: '#b0d8ff',
+        cursor: 'not-allowed',
+      }
     },
     editButton: {
       backgroundColor: '#ffc107',
       color: '#333',
-      '&:hover': { backgroundColor: '#e0a800' },
-      '&:disabled': { backgroundColor: '#ffeaa0' }
+      '&:hover': {
+        backgroundColor: '#e0a800',
+        transform: 'translateY(-2px)',
+      },
+      '&:disabled': {
+        backgroundColor: '#ffeaa0',
+        cursor: 'not-allowed',
+      }
     },
     deleteButton: {
       backgroundColor: '#dc3545',
       color: 'white',
-      '&:hover': { backgroundColor: '#c82333' },
-      '&:disabled': { backgroundColor: '#f5c6cb' }
+      '&:hover': {
+        backgroundColor: '#c82333',
+        transform: 'translateY(-2px)',
+      },
+      '&:disabled': {
+        backgroundColor: '#f5c6cb',
+        cursor: 'not-allowed',
+      }
     },
-    uploadButton: {
-      backgroundColor: '#6c757d',
-      color: 'white',
-      '&:hover': { backgroundColor: '#5a6268' },
-      '&:disabled': { backgroundColor: '#ced4da' }
+    bulkActionSection: {
+      backgroundColor: '#e9ecef',
+      padding: '25px',
+      borderRadius: '8px',
+      boxShadow: 'inset 0 1px 5px rgba(0,0,0,0.05)',
+      marginBottom: '30px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: '15px',
     },
-    deleteAllButton: {
-      backgroundColor: '#dc3545',
-      color: 'white',
-      marginTop: '20px', // More space after file input
+    sectionTitle: {
+      fontSize: '22px',
+      fontWeight: 'bold',
+      color: '#34495e',
+      marginBottom: '10px',
+      borderBottom: '1px solid #b0c4de',
+      paddingBottom: '8px',
       width: '100%',
-      boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-      '&:hover': { transform: 'scale(1.01)' },
-      '&:disabled': { backgroundColor: '#f5c6cb' }
     },
     fileInputContainer: {
       display: 'flex',
@@ -192,6 +212,44 @@ const ItemMaster = () => {
       borderRadius: '4px',
       backgroundColor: 'white',
     },
+    uploadButton: {
+      backgroundColor: '#6c757d',
+      color: 'white',
+      '&:hover': {
+        backgroundColor: '#5a6268',
+      },
+      '&:disabled': {
+        backgroundColor: '#ced4da',
+      }
+    },
+    deleteAllButton: {
+      backgroundColor: '#dc3545',
+      color: 'white',
+      marginTop: '15px',
+      width: '100%',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+      '&:hover': {
+        backgroundColor: '#c82333',
+        transform: 'scale(1.01)',
+      },
+      '&:disabled': {
+        backgroundColor: '#f5c6cb',
+        cursor: 'not-allowed',
+      }
+    },
+    searchInput: { // Updated search input style
+      width: '100%',
+      padding: '12px 15px',
+      fontSize: '16px',
+      border: '1px solid #bdc3c7',
+      borderRadius: '4px',
+      boxSizing: 'border-box',
+      fontFamily: 'inherit',
+      transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+      outline: 'none',
+      marginBottom: '30px',
+      marginTop: '10px', // Added top margin for separation
+    },
     table: {
       width: '100%',
       borderCollapse: 'separate',
@@ -200,7 +258,7 @@ const ItemMaster = () => {
       borderRadius: '8px',
       overflow: 'hidden',
       boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-      marginTop: '20px', // Margin above the table
+      marginTop: '20px',
     },
     tableHeader: {
       backgroundColor: '#34495e',
@@ -214,8 +272,12 @@ const ItemMaster = () => {
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
       borderBottom: '2px solid #2c3e50',
-      '&:first-child': { borderTopLeftRadius: '8px' },
-      '&:last-child': { borderTopRightRadius: '8px' },
+      '&:first-child': {
+        borderTopLeftRadius: '8px',
+      },
+      '&:last-child': {
+        borderTopRightRadius: '8px',
+      },
     },
     td: {
       padding: '12px 20px',
@@ -223,8 +285,12 @@ const ItemMaster = () => {
       fontSize: '15px',
       backgroundColor: '#ffffff',
     },
-    tdRight: { textAlign: 'right' },
-    tdCenter: { textAlign: 'center' },
+    tdRight: {
+      textAlign: 'right',
+    },
+    tdCenter: {
+      textAlign: 'center',
+    },
     noItemsRow: {
       textAlign: 'center',
       fontStyle: 'italic',
@@ -287,21 +353,21 @@ const ItemMaster = () => {
       color: '#2c3e50',
     },
     spinner: {
-      border: '6px solid #f3f3f3',
-      borderTop: '6px solid #3498db',
-      borderRadius: '50%',
-      width: '50px',
-      height: '50px',
-      animation: 'spin 1s linear infinite',
-      marginBottom: '15px',
+        border: '6px solid #f3f3f3',
+        borderTop: '6px solid #3498db',
+        borderRadius: '50%',
+        width: '50px',
+        height: '50px',
+        animation: 'spin 1s linear infinite',
+        marginBottom: '15px',
     },
     '@keyframes spin': {
-      '0%': { transform: 'rotate(0deg)' },
-      '100%': { transform: 'rotate(360deg)' },
+        '0%': { transform: 'rotate(0deg)' },
+        '100%': { transform: 'rotate(360deg)' },
     }
   };
 
-  // Helper function to apply hover and disabled styles dynamically
+  // Helper function to dynamically apply hover and disabled styles
   const getButtonStyles = (baseStyle, isHovered, isDisabled) => {
     let finalStyle = { ...baseStyle };
 
@@ -311,179 +377,193 @@ const ItemMaster = () => {
     if (isDisabled && baseStyle['&:disabled']) {
       finalStyle = { ...finalStyle, ...baseStyle['&:disabled'] };
     }
-    // Remove pseudo-class styles from the direct style object
     delete finalStyle['&:hover'];
     delete finalStyle['&:disabled'];
     return finalStyle;
   };
 
-  // --- Data Fetching ---
-  const fetchItems = async () => {
-    setLoading(true);
-    setUploadStatus({ type: 'info', message: 'Fetching items...' });
-    try {
-      const snapshot = await getDocs(collection(db, 'items'));
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setItems(list);
-      setFilteredItems(list);
-      setUploadStatus(null);
-    } catch (error) {
-      console.error("Error fetching items:", error);
-      setUploadStatus({ type: 'error', message: 'Failed to fetch items. Please try again.' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    fetchItems();
+    fetchCustomers();
   }, []);
 
+  // NEW: Filter customers whenever the list or search term changes
   useEffect(() => {
-    const filtered = items.filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = customers.filter(customer =>
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    setFilteredItems(filtered);
-  }, [searchTerm, items]);
+    setFilteredCustomers(filtered);
+  }, [searchTerm, customers]); // Depend on searchTerm and customers
 
-  // --- Handlers for New/Update Item Tab ---
-  const handleSave = async () => {
-    let isValid = true;
-    setItemNameError('');
-    setItemRateError('');
-    setItemStockError('');
-
-    if (!name.trim()) {
-      setItemNameError('Item name cannot be empty.');
-      isValid = false;
-    }
-
-    const rateValue = parseFloat(rate);
-    if (isNaN(rateValue) || rateValue < 0) {
-      setItemRateError('Enter a valid positive rate (e.g., 100.00).');
-      isValid = false;
-    }
-
-    const stockValue = parseInt(stock);
-    if (isNaN(stockValue) || stockValue < 0) {
-      setItemStockError('Enter a valid positive stock quantity (e.g., 10).');
-      isValid = false;
-    }
-
-    if (!isValid) {
-      setUploadStatus({ type: 'error', message: 'Please correct the input errors in the form.' });
-      return;
-    }
-
+  // --- Fetch Customers ---
+  const fetchCustomers = async () => {
     setLoading(true);
+    setUploadStatus({ type: 'info', message: 'Fetching customers...' });
     try {
-      if (editingId) {
-        await updateDoc(doc(db, 'items', editingId), { name: name.trim(), rate: rateValue, stock: stockValue });
-        setUploadStatus({ type: 'success', message: 'Item updated successfully!' });
-      } else {
-        await addDoc(collection(db, 'items'), { name: name.trim(), rate: rateValue, stock: stockValue });
-        setUploadStatus({ type: 'success', message: 'Item added successfully!' });
-      }
-
-      // Clear form and reset state
-      setName('');
-      setRate('');
-      setStock('');
-      setEditingId(null);
-      fetchItems(); // Re-fetch to update the list in "Item List" tab
+      const snapshot = await getDocs(collection(db, 'customer'));
+      const customerData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCustomers(customerData);
+      // setFilteredCustomers will be updated by the useEffect above
+      setUploadStatus(null);
     } catch (error) {
-      console.error("Error saving item:", error);
-      setUploadStatus({ type: 'error', message: `Failed to save item: ${error.message}` });
+      console.error('Error fetching customers:', error);
+      setUploadStatus({ type: 'error', message: 'Failed to fetch customers. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Handlers for Item List Tab ---
-  const handleEdit = (item) => {
-    setName(item.name);
-    setRate(item.rate.toString());
-    setStock(item.stock?.toString() || '0');
-    setEditingId(item.id);
-    setActiveTab('newItem'); // Switch to "New Item" tab for editing
-    setUploadStatus(null);
-    setItemNameError('');
-    setItemRateError('');
-    setItemStockError('');
+  // --- Handle Add Customer ---
+  const handleAddCustomer = async () => {
+    if (!newCustomerName.trim()) {
+      setNameError('Customer name cannot be empty.');
+      setUploadStatus({ type: 'error', message: 'Please enter a customer name.' });
+      return;
+    }
+    setNameError('');
+
+    setLoading(true);
+    try {
+      await addDoc(collection(db, 'customer'), {
+        name: newCustomerName.trim(),
+        contact: newCustomerContact.trim(),
+        createdAt: Timestamp.now(),
+      });
+      setNewCustomerName('');
+      setNewCustomerContact('');
+      fetchCustomers();
+      setUploadStatus({ type: 'success', message: 'Customer added successfully!' });
+    } catch (error) {
+      console.error('Error adding customer:', error);
+      setUploadStatus({ type: 'error', message: `Failed to add customer: ${error.message}` });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
+  // --- Handle Edit Customer (sets form fields) ---
+  const handleEditCustomer = (customer) => {
+    setEditingCustomer(customer);
+    setNewCustomerName(customer.name);
+    setNewCustomerContact(customer.contact || '');
+    setActiveTab('newCustomer');
+    setUploadStatus(null);
+    setNameError('');
+  };
+
+  // --- Handle Update Customer ---
+  const handleUpdateCustomer = async () => {
+    if (!editingCustomer || !newCustomerName.trim()) {
+      setNameError('Customer name cannot be empty.');
+      setUploadStatus({ type: 'error', message: 'Please enter a customer name.' });
+      return;
+    }
+    setNameError('');
+
+    setLoading(true);
+    try {
+      const customerRef = doc(db, 'customer', editingCustomer.id);
+      await updateDoc(customerRef, {
+        name: newCustomerName.trim(),
+        contact: newCustomerContact.trim(),
+      });
+      setEditingCustomer(null);
+      setNewCustomerName('');
+      setNewCustomerContact('');
+      fetchCustomers();
+      setUploadStatus({ type: 'success', message: 'Customer updated successfully!' });
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      setUploadStatus({ type: 'error', message: `Failed to update customer: ${error.message}` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Handle Delete Customer ---
+  const handleDeleteCustomer = async (id) => {
+    if (window.confirm('Are you sure you want to delete this customer?')) {
       setLoading(true);
-      setUploadStatus({ type: 'info', message: 'Deleting item...' });
+      setUploadStatus({ type: 'info', message: 'Deleting customer...' });
       try {
-        await deleteDoc(doc(db, 'items', id));
-        fetchItems();
-        setUploadStatus({ type: 'success', message: 'Item deleted successfully!' });
+        await deleteDoc(doc(db, 'customer', id));
+        fetchCustomers();
+        setUploadStatus({ type: 'success', message: 'Customer deleted successfully!' });
       } catch (error) {
-        console.error("Error deleting item:", error);
-        setUploadStatus({ type: 'error', message: `Failed to delete item: ${error.message}` });
+        console.error('Error deleting customer:', error);
+        setUploadStatus({ type: 'error', message: `Failed to delete customer: ${error.message}` });
       } finally {
         setLoading(false);
       }
     }
   };
 
-  // --- Handlers for Bulk Actions Tab ---
-  const handleDeleteAll = async () => {
-    if (window.confirm('Are you absolutely sure you want to delete ALL items? This action cannot be undone and will permanently remove all item data.')) {
+  // --- Handle Delete All Customers ---
+  const handleDeleteAllCustomers = async () => {
+    if (window.confirm('Are you absolutely sure you want to delete ALL customers? This action cannot be undone and will permanently remove all customer data.')) {
       setLoading(true);
-      setUploadStatus({ type: 'info', message: 'Initiating bulk deletion of all items. This may take a moment...' });
+      setUploadStatus({ type: 'info', message: 'Initiating bulk deletion of all customers. This may take a moment...' });
       try {
-        const snapshot = await getDocs(collection(db, 'items'));
+        const snapshot = await getDocs(collection(db, 'customer'));
         if (snapshot.empty) {
-          setUploadStatus({ type: 'info', message: 'No items to delete.' });
-          setLoading(false);
-          return;
+            setUploadStatus({ type: 'info', message: 'No customers to delete.' });
+            setLoading(false);
+            return;
         }
         const batch = writeBatch(db);
         snapshot.docs.forEach(docSnap => {
-          batch.delete(doc(db, 'items', docSnap.id));
+          batch.delete(doc(db, 'customer', docSnap.id));
         });
         await batch.commit();
-        fetchItems();
-        setUploadStatus({ type: 'success', message: `Successfully deleted ${snapshot.docs.length} items.` });
+        fetchCustomers();
+        setUploadStatus({ type: 'success', message: `Successfully deleted ${snapshot.docs.length} customers.` });
       } catch (error) {
-        console.error("Error deleting all items:", error);
-        setUploadStatus({ type: 'error', message: `Failed to delete all items: ${error.message}` });
+        console.error('Error deleting all customers:', error);
+        setUploadStatus({ type: 'error', message: `Failed to delete all customers: ${error.message}` });
       } finally {
         setLoading(false);
       }
     }
   };
 
+  // --- Handle Cancel Edit ---
+  const handleCancelEdit = () => {
+    setEditingCustomer(null);
+    setNewCustomerName('');
+    setNewCustomerContact('');
+    setUploadStatus(null);
+    setNameError('');
+  };
+
+  // --- Handle File Selection for CSV ---
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
-      const file = e.target.files[0];
-      if (file.type !== 'text/csv') {
+      const selectedFile = e.target.files[0];
+      if (selectedFile.type !== 'text/csv') {
         setUploadStatus({ type: 'error', message: 'Please select a valid CSV file.' });
-        setCsvFile(null);
+        setFile(null);
         document.getElementById('csvFileInput').value = '';
         return;
       }
-      setCsvFile(file);
-      setUploadStatus({ type: 'info', message: `File selected: ${file.name}` });
+      setFile(selectedFile);
+      setUploadStatus({ type: 'info', message: `File selected: ${selectedFile.name}` });
     } else {
-      setCsvFile(null);
+      setFile(null);
       setUploadStatus(null);
     }
   };
 
-  const handleCSVUpload = () => {
-    if (!csvFile) {
-      setUploadStatus({ type: 'error', message: "Please select a CSV file first." });
+  // --- Handle CSV Upload ---
+  const handleCsvUpload = () => {
+    if (!file) {
+      setUploadStatus({ type: 'error', message: 'Please select a CSV file first.' });
       return;
     }
 
     setLoading(true);
-    setUploadStatus({ type: 'info', message: 'Processing CSV and importing items...' });
+    setUploadStatus({ type: 'info', message: 'Uploading and processing CSV...' });
 
-    Papa.parse(csvFile, {
+    Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
@@ -497,49 +577,51 @@ const ItemMaster = () => {
         const batch = writeBatch(db);
         let uploadedCount = 0;
         let skippedCount = 0;
-        const existingItemNames = new Set(items.map(item => item.name.toLowerCase()));
+        const existingCustomerNames = new Set(customers.map(c => c.name.toLowerCase()));
 
         for (const row of data) {
-          const itemName = (row.name || '').trim();
-          const itemRate = parseFloat(row.rate);
-          const itemStock = parseInt(row.stock);
+          const customerName = (row.Name || row.name || '').trim();
+          const customerContact = (row.Contact || row.contact || '').trim();
 
-          if (itemName && !isNaN(itemRate) && itemRate >= 0 && !isNaN(itemStock) && itemStock >= 0) {
-            if (existingItemNames.has(itemName.toLowerCase())) {
+          if (customerName) {
+            if (existingCustomerNames.has(customerName.toLowerCase())) {
               skippedCount++;
-              console.warn(`Skipping duplicate item found in current list: "${itemName}"`);
+              console.warn(`Skipping duplicate customer found in current list: "${customerName}"`);
               continue;
             }
 
-            const newItemRef = doc(collection(db, 'items'));
-            batch.set(newItemRef, {
-              name: itemName,
-              rate: itemRate,
-              stock: itemStock,
+            const customerRef = doc(collection(db, 'customer'));
+            batch.set(customerRef, {
+              name: customerName,
+              contact: customerContact,
+              createdAt: Timestamp.now(),
             });
             uploadedCount++;
           } else {
             skippedCount++;
-            console.warn('Skipping row due to invalid/missing data:', row);
+            console.warn('Skipping row due to missing customer name:', row);
           }
         }
 
         try {
           await batch.commit();
-          fetchItems();
-          setCsvFile(null);
+          fetchCustomers();
+          setFile(null);
           document.getElementById('csvFileInput').value = '';
-          setUploadStatus({ type: 'success', message: `CSV upload complete! ${uploadedCount} items added, ${skippedCount} skipped.` });
+          setUploadStatus({
+            type: 'success',
+            message: `CSV uploaded successfully! ${uploadedCount} customers added, ${skippedCount} skipped.`
+          });
         } catch (error) {
-          console.error("Error uploading CSV to Firestore:", error);
+          console.error('Error uploading CSV to Firestore:', error);
           setUploadStatus({ type: 'error', message: `Failed to upload CSV to database: ${error.message}` });
         } finally {
           setLoading(false);
         }
       },
       error: (error) => {
-        console.error("Error parsing CSV:", error);
-        setUploadStatus({ type: 'error', message: `Failed to parse CSV: ${error.message}` });
+        console.error('Error parsing CSV:', error);
+        setUploadStatus({ type: 'error', message: `Error parsing CSV file: ${error.message}` });
         setLoading(false);
       }
     });
@@ -555,23 +637,23 @@ const ItemMaster = () => {
       )}
 
       <div style={styles.header}>
-        <h1 style={styles.title}>Item Master Management</h1>
+        <h1 style={styles.title}>Customer Master</h1>
       </div>
 
       <div style={styles.tabContainer}>
         <button
-          style={{ ...styles.tabButton, ...(activeTab === 'newItem' && styles.activeTabButton) }}
-          onClick={() => setActiveTab('newItem')}
+          style={{ ...styles.tabButton, ...(activeTab === 'newCustomer' && styles.activeTabButton) }}
+          onClick={() => setActiveTab('newCustomer')}
           disabled={loading}
         >
-          New Item
+          New Customer
         </button>
         <button
-          style={{ ...styles.tabButton, ...(activeTab === 'itemList' && styles.activeTabButton) }}
-          onClick={() => setActiveTab('itemList')}
+          style={{ ...styles.tabButton, ...(activeTab === 'customerList' && styles.activeTabButton) }}
+          onClick={() => setActiveTab('customerList')}
           disabled={loading}
         >
-          Item List
+          Customer List
         </button>
         <button
           style={{ ...styles.tabButton, ...(activeTab === 'bulkActions' && styles.activeTabButton) }}
@@ -583,68 +665,52 @@ const ItemMaster = () => {
       </div>
 
       <div style={styles.tabContent}>
-        {activeTab === 'newItem' && (
+        {activeTab === 'newCustomer' && (
           <>
-            <h2 style={{ ...styles.label, fontSize: '22px' }}>{editingId ? 'Update Existing Item' : 'Add New Item'}</h2>
+            <h2 style={styles.sectionTitle}>{editingCustomer ? 'Update Existing Customer' : 'Add New Customer'}</h2>
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Item Name:</label>
+              <label style={styles.label}>Customer Name:</label>
               <input
                 type="text"
-                value={name}
-                placeholder="e.g., Laptop, Keyboard"
-                onChange={e => setName(e.target.value)}
+                value={newCustomerName}
+                placeholder="e.g., John Doe"
+                onChange={(e) => setNewCustomerName(e.target.value)}
                 style={styles.input}
                 onFocus={(e) => e.target.style.borderColor = '#007bff'}
                 onBlur={(e) => e.target.style.borderColor = '#bdc3c7'}
                 disabled={loading}
               />
-              {itemNameError && <p style={styles.errorMessage}>{itemNameError}</p>}
+              {nameError && <p style={styles.errorMessage}>{nameError}</p>}
             </div>
 
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Rate (₹):</label>
+              <label style={styles.label}>Contact Info (Optional):</label>
               <input
-                type="number"
-                value={rate}
-                placeholder="e.g., 50000.00"
-                onChange={e => setRate(e.target.value)}
+                type="text"
+                value={newCustomerContact}
+                placeholder="e.g., 9876543210, john.doe@example.com"
+                onChange={(e) => setNewCustomerContact(e.target.value)}
                 style={styles.input}
                 onFocus={(e) => e.target.style.borderColor = '#007bff'}
                 onBlur={(e) => e.target.style.borderColor = '#bdc3c7'}
                 disabled={loading}
               />
-              {itemRateError && <p style={styles.errorMessage}>{itemRateError}</p>}
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Stock Quantity:</label>
-              <input
-                type="number"
-                value={stock}
-                placeholder="e.g., 100"
-                onChange={e => setStock(e.target.value)}
-                style={styles.input}
-                onFocus={(e) => e.target.style.borderColor = '#007bff'}
-                onBlur={(e) => e.target.style.borderColor = '#bdc3c7'}
-                disabled={loading}
-              />
-              {itemStockError && <p style={styles.errorMessage}>{itemStockError}</p>}
             </div>
 
             <div style={styles.buttonRow}>
-              {editingId ? (
+              {editingCustomer ? (
                 <>
                   <button
-                    onClick={handleSave}
-                    style={getButtonStyles(styles.primaryButton, false, loading)} // Pass false for isHovered in direct style application
+                    onClick={handleUpdateCustomer}
+                    style={getButtonStyles(styles.primaryButton, false, loading)}
                     onMouseEnter={(e) => e.target.style.backgroundColor = styles.primaryButton['&:hover'].backgroundColor}
                     onMouseLeave={(e) => e.target.style.backgroundColor = styles.primaryButton.backgroundColor}
                     disabled={loading}
                   >
-                    Update Item
+                    Update Customer
                   </button>
                   <button
-                    onClick={() => { setEditingId(null); setName(''); setRate(''); setStock(''); setUploadStatus(null); setItemNameError(''); setItemRateError(''); setItemStockError(''); }}
+                    onClick={handleCancelEdit}
                     style={getButtonStyles(styles.deleteButton, false, loading)}
                     onMouseEnter={(e) => e.target.style.backgroundColor = styles.deleteButton['&:hover'].backgroundColor}
                     onMouseLeave={(e) => e.target.style.backgroundColor = styles.deleteButton.backgroundColor}
@@ -655,24 +721,26 @@ const ItemMaster = () => {
                 </>
               ) : (
                 <button
-                  onClick={handleSave}
+                  onClick={handleAddCustomer}
                   style={getButtonStyles(styles.secondaryButton, false, loading)}
                   onMouseEnter={(e) => e.target.style.backgroundColor = styles.secondaryButton['&:hover'].backgroundColor}
                   onMouseLeave={(e) => e.target.style.backgroundColor = styles.secondaryButton.backgroundColor}
                   disabled={loading}
                 >
-                  Add New Item
+                  Add New Customer
                 </button>
               )}
             </div>
           </>
         )}
 
-        {activeTab === 'itemList' && (
+        {activeTab === 'customerList' && (
           <>
+            <h2 style={styles.sectionTitle}>Existing Customers</h2>
+            {/* NEW: Search Input */}
             <input
               type="text"
-              placeholder="Search items by name..."
+              placeholder="Search customers by name..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               style={styles.searchInput}
@@ -684,32 +752,26 @@ const ItemMaster = () => {
             <table style={styles.table}>
               <thead style={styles.tableHeader}>
                 <tr>
-                  <th style={styles.th}>Item Name</th>
-                  <th style={{ ...styles.th, ...styles.tdRight }}>Rate (₹)</th>
-                  <th style={{ ...styles.th, ...styles.tdRight }}>Stock Quantity</th>
-                  <th style={{ ...styles.th, ...styles.tdCenter, borderRight: 'none' }}>Actions</th>
+                  <th style={styles.th}>Name</th>
+                  <th style={styles.th}>Contact</th>
+                  <th style={{ ...styles.th, ...styles.tdCenter }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.length === 0 && !loading ? (
+                {filteredCustomers.length === 0 && !loading ? (
                   <tr>
-                    <td colSpan="4" style={{ ...styles.td, ...styles.noItemsRow, borderRight: 'none' }}>
-                      {searchTerm ? 'No items found matching your search.' : 'No items available. Add some items using the "New Item" tab.'}
+                    <td colSpan="3" style={{ ...styles.td, ...styles.noItemsRow }}>
+                      {searchTerm ? 'No customers found matching your search.' : 'No customers available. Add some using the "New Customer" tab.'}
                     </td>
                   </tr>
                 ) : (
-                  filteredItems.map(item => (
-                    <tr key={item.id}>
-                      <td style={styles.td}>{item.name}</td>
-                      <td style={{ ...styles.td, ...styles.tdRight, fontWeight: 'bold' }}>
-                        ₹{item.rate ? parseFloat(item.rate).toFixed(2) : '0.00'}
-                      </td>
-                      <td style={{ ...styles.td, ...styles.tdRight }}>
-                        {item.stock || 0}
-                      </td>
-                      <td style={{ ...styles.td, ...styles.tdCenter, borderRight: 'none' }}>
+                  filteredCustomers.map((customer) => (
+                    <tr key={customer.id}>
+                      <td style={styles.td}>{customer.name}</td>
+                      <td style={styles.td}>{customer.contact || 'N/A'}</td>
+                      <td style={{ ...styles.td, ...styles.tdCenter }}>
                         <button
-                          onClick={() => handleEdit(item)}
+                          onClick={() => handleEditCustomer(customer)}
                           style={{
                             ...getButtonStyles(styles.editButton, false, loading),
                             padding: '8px 15px',
@@ -720,13 +782,12 @@ const ItemMaster = () => {
                           }}
                           onMouseEnter={(e) => e.target.style.backgroundColor = styles.editButton['&:hover'].backgroundColor}
                           onMouseLeave={(e) => e.target.style.backgroundColor = styles.editButton.backgroundColor}
-                          title="Edit Item"
                           disabled={loading}
                         >
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDeleteCustomer(customer.id)}
                           style={{
                             ...getButtonStyles(styles.deleteButton, false, loading),
                             padding: '8px 15px',
@@ -736,7 +797,6 @@ const ItemMaster = () => {
                           }}
                           onMouseEnter={(e) => e.target.style.backgroundColor = styles.deleteButton['&:hover'].backgroundColor}
                           onMouseLeave={(e) => e.target.style.backgroundColor = styles.deleteButton.backgroundColor}
-                          title="Delete Item"
                           disabled={loading}
                         >
                           Delete
@@ -748,29 +808,28 @@ const ItemMaster = () => {
               </tbody>
             </table>
             <div style={styles.totalItems}>
-              Total Displayed Items: {filteredItems.length} (out of {items.length} total)
+              Total Displayed Customers: {filteredCustomers.length} (out of {customers.length} total)
             </div>
           </>
         )}
 
         {activeTab === 'bulkActions' && (
           <>
-            <h2 style={{ ...styles.label, fontSize: '22px' }}>Bulk Actions</h2>
-            
-            <button
-              onClick={handleDeleteAll}
+            <h2 style={styles.sectionTitle}>Bulk Actions</h2>
+             <button
+              onClick={handleDeleteAllCustomers}
               style={{
-                ...getButtonStyles(styles.deleteAllButton, false, loading || items.length === 0),
-                width: '25%' // Ensure full width
+                ...getButtonStyles(styles.deleteAllButton, false, loading || customers.length === 0),
+                width: '25%'
               }}
-              onMouseEnter={(e) => { if (!loading && items.length > 0) e.target.style.backgroundColor = styles.deleteAllButton['&:hover'].backgroundColor; }}
-              onMouseLeave={(e) => { if (!loading && items.length > 0) e.target.style.backgroundColor = styles.deleteAllButton.backgroundColor; }}
-              disabled={loading || items.length === 0}
+              onMouseEnter={(e) => { if (!loading && customers.length > 0) e.target.style.backgroundColor = styles.deleteAllButton['&:hover'].backgroundColor; }}
+              onMouseLeave={(e) => { if (!loading && customers.length > 0) e.target.style.backgroundColor = styles.deleteAllButton.backgroundColor; }}
+              disabled={loading || customers.length === 0}
             >
-              🗑 Delete All Items ({items.length})
+              🗑 Delete All Customers ({customers.length})
             </button>
             <div style={styles.fileInputContainer}>
-              <label style={styles.label}>Upload Items via CSV:</label>
+              <label style={styles.label}>Upload Customers via CSV:</label>
               <input
                 type="file"
                 id="csvFileInput"
@@ -780,14 +839,14 @@ const ItemMaster = () => {
                 disabled={loading}
               />
               <button
-                onClick={handleCSVUpload}
+                onClick={handleCsvUpload}
                 style={{
-                  ...getButtonStyles(styles.uploadButton, false, loading || !csvFile),
+                  ...getButtonStyles(styles.uploadButton, false, loading || !file),
                   minWidth: 'auto',
                 }}
-                onMouseEnter={(e) => { if (!loading && csvFile) e.target.style.backgroundColor = styles.uploadButton['&:hover'].backgroundColor; }}
-                onMouseLeave={(e) => { if (!loading && csvFile) e.target.style.backgroundColor = styles.uploadButton.backgroundColor; }}
-                disabled={loading || !csvFile}
+                onMouseEnter={(e) => { if (!loading && file) e.target.style.backgroundColor = styles.uploadButton['&:hover'].backgroundColor; }}
+                onMouseLeave={(e) => { if (!loading && file) e.target.style.backgroundColor = styles.uploadButton.backgroundColor; }}
+                disabled={loading || !file}
               >
                 Upload CSV
               </button>
@@ -806,11 +865,12 @@ const ItemMaster = () => {
               </div>
             )}
 
+           
           </>
         )}
       </div>
     </div>
   );
-};
+}
 
-export default ItemMaster;
+export default CustomerMaster;

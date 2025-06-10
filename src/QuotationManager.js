@@ -85,22 +85,14 @@ function QuotationManager() {
     if (field === 'item') {
       newItems[index].item = value;
       const found = itemMaster.find(i => i.name.toLowerCase() === value.toLowerCase());
-      // Only update rate if an item is found and the input exactly matches the item name
-      // Otherwise, the user can type freely, and the rate can be manually adjusted
-      if (found && value.toLowerCase() === found.name.toLowerCase()) {
-        newItems[index].rate = found.rate;
-        newItems[index].stock = found.stock || 0;
-        setShowItemDropdownIndex(null); // Hide dropdown when a full match is found
-      } else if (!found) {
-        // If no match, or partial match, clear the stock and allow rate to remain as is or be set manually
-        newItems[index].stock = 0;
-      }
+      newItems[index].rate = found ? found.rate : 0;
+      newItems[index].stock = found ? found.stock || 0 : 0;
       newItems[index].amount = newItems[index].rate * newItems[index].qty;
+      if (found && value.toLowerCase() === found.name.toLowerCase()) {
+        setShowItemDropdownIndex(null);
+      }
     } else if (field === 'qty') {
       newItems[index].qty = parseInt(value) || 1;
-      newItems[index].amount = newItems[index].rate * newItems[index].qty;
-    } else if (field === 'rate') { // Added handler for rate change
-      newItems[index].rate = parseFloat(value) || 0;
       newItems[index].amount = newItems[index].rate * newItems[index].qty;
     }
     setItems(newItems);
@@ -161,9 +153,7 @@ function QuotationManager() {
   const handleEdit = (quotation) => {
     setEditingQuotationId(quotation.id);
     setCustomerName(quotation.customerName);
-    // Ensure that each item has a 'stock' property when editing, defaulting to 0 if not present
-    const itemsWithStock = quotation.items.map(item => ({ ...item, stock: item.stock || 0 }));
-    setItems(itemsWithStock);
+    setItems(quotation.items);
     setActiveTab('create'); // Switch to create tab for editing
     window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top
   };
@@ -195,24 +185,20 @@ function QuotationManager() {
     doc.line(14, 42, 196, 42);
 
     autoTable(doc, {
-  startY: 48,
-  head: [['Item Name', 'Rate', 'Qty', 'Amount']],
-  body: q.items.map(i => [
-    i.item,
-    `Rs. ${i.rate}`,
-    i.qty,
-    `Rs. ${i.amount}`
-  ]),
-  styles: { halign: 'left' }, // default style
-  headStyles: { fillColor: [22, 160, 133], textColor: 255 },
-  alternateRowStyles: { fillColor: [245, 245, 245] },
-  columnStyles: {
-    1: { halign: 'right' }, // Rate column
-    2: { halign: 'right' }, // Qty column
-    3: { halign: 'right' }  // Amount column
-  },
-  margin: { left: 14, right: 14 },
-});
+      startY: 48,
+      head: [['Item Name', 'Rate', 'Qty', 'Amount']],
+      body: q.items.map(i => [
+        i.item,
+        `Rs. ${i.rate}`,
+        i.qty,
+        `Rs. ${i.amount}`
+      ]),
+      styles: { halign: 'center' },
+      headStyles: { fillColor: [22, 160, 133], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { left: 14, right: 14 },
+    });
+
     const finalY = doc.lastAutoTable.finalY;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
@@ -372,15 +358,6 @@ function QuotationManager() {
     },
     qtyInput: {
       width: '70px',
-      padding: '8px 12px',
-      border: '1px solid #bdc3c7',
-      borderRadius: '3px',
-      fontSize: '15px',
-      textAlign: 'right',
-      fontFamily: 'inherit'
-    },
-    rateInput: { // New style for rate input
-      width: '90px',
       padding: '8px 12px',
       border: '1px solid #bdc3c7',
       borderRadius: '3px',
@@ -744,14 +721,7 @@ function QuotationManager() {
                     )}
                   </td>
                   <td style={{ ...styles.td, ...styles.tdRight }}>
-                    <input // Added input for editing rate
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={row.rate.toFixed(2)}
-                      onChange={e => handleItemChange(index, 'rate', e.target.value)}
-                      style={styles.rateInput}
-                    />
+                    {row.rate.toFixed(2)}
                   </td>
                   <td style={{ ...styles.td, ...styles.tdRight }}>
                     <input
